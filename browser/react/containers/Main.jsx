@@ -8,6 +8,9 @@ import SingleAlbum from '../components/SingleAlbum';
 import audio from '../audio';
 import Artists from '../components/Artists';
 import Artist from '../components/Artist';
+import NewPlaylist from '../components/NewPlaylist'
+import FilterableArtistsContainer from '../containers/FilterableArtistsContainer'
+import NewPlaylistContainer from './NewPlaylistContainer';
 
 export default class Main extends React.Component {
   constructor(){
@@ -24,6 +27,8 @@ export default class Main extends React.Component {
         albums: [],
         songs: []
       },
+      playList:[],
+      createdList:[]
     };
     this.selectAlbum = this.selectAlbum.bind(this);
     this.start = this.start.bind(this);
@@ -32,6 +37,7 @@ export default class Main extends React.Component {
     this.next = this.next.bind(this);
     this.previous = this.previous.bind(this);
     this.selectArtist = this.selectArtist.bind(this);
+    this.createPlaylist= this.createPlaylist.bind(this);
   }
   
   componentDidMount() {
@@ -42,6 +48,10 @@ export default class Main extends React.Component {
     axios.get('/api/artists')
       .then(res => res.data)
       .then(artists => this.setState({ artists }));
+    
+    axios.get('/api/playlists')
+    .then(res => res.data)
+    .then(playList => this.setState({ playList }));
 
     audio.addEventListener('ended', () => {
       this.next();
@@ -119,11 +129,21 @@ export default class Main extends React.Component {
     this.loadSong(song.audioUrl)
   }
 
+  createPlaylist(value){
+    axios.post('/api/playlists',{name:value})
+        .then(res => res.data)
+        .then(result => {
+          this.setState({createdList:[...this.state.createdList, result]}) // la respuesta del servidor.
+          console.log(this.state.createdList)
+        });
+  }
+
+
   render() {
-    const  { albums, selectedAlbum, selectedSong, isPlaying, progress, artists, selectedArtist } = this.state;
+    const  { playList, albums, selectedAlbum, selectedSong, isPlaying, progress, artists, selectedArtist } = this.state;
     return (
       <div id="main" className="container-fluid">
-        <Sidebar />
+        <Sidebar playList={playList}/>
         <div className="col-xs-10">
           <Switch>
             <Route exact path="/albums" render={() => <Albums albums={albums} /> } />
@@ -139,7 +159,7 @@ export default class Main extends React.Component {
                 />
               )} 
             />
-            <Route path="/artists" exact render={() => <Artists artists={artists} />} />
+            <Route path="/artists" exact render={() => <FilterableArtistsContainer artists={artists} />} />
             <Route path="/artists/:id" render={({ match }) => 
               <Artist
                 artistId={match.params.id}
@@ -150,6 +170,7 @@ export default class Main extends React.Component {
                 selectedSong={selectedSong}
                 selectArtist={this.selectArtist} />}
               />
+            <Route path="/NewPlaylist"  exact render={()=> <NewPlaylistContainer createPlaylist={this.createPlaylist}/>}/>
             <Redirect from="/" to="/albums" />
           </Switch>
         </div>
